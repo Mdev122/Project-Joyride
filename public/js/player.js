@@ -13,7 +13,8 @@ const playerEl = document.getElementById('joyride-player');
 canvas.width = 400;
 canvas.height = 125;
 
-let audioCtx, analyser, source, dataArray;
+let audioCtx, analyser, source;
+let dataArray = new Uint8Array(128);
 let isContextSetup = false;
 
 let tracks = [];
@@ -124,12 +125,14 @@ function setupAudioEngine() {
   source = audioCtx.createMediaElementSource(audio);
   source.connect(analyser);
   analyser.connect(audioCtx.destination);
-  analyser.fftSize = 64;
+  analyser.fftSize = 256;
   dataArray = new Uint8Array(analyser.frequencyBinCount);
 }
 
-let bounceOffset = 0;
-let swingAngle = 0;
+// Parametry equalizera
+const BAR_COUNT = 28;
+const BAR_GAP = 3;
+let peaks = new Array(BAR_COUNT).fill(0);
 
 function draw() {
   requestAnimationFrame(draw);
@@ -137,70 +140,71 @@ function draw() {
   ctx.fillStyle = "rgba(3, 7, 17, 0.35)";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  let bass = 0;
+  let overallLevel = 0;
+
   if (analyser && !audio.paused) {
     analyser.getByteFrequencyData(dataArray);
-    bass = (dataArray[0] + dataArray[1] + dataArray[2]) / 3;
   }
 
-  const glowIntensity = Math.min(bass / 180, 1);
+  const groundY = 110;
+  const maxBarHeight = 100;
+  const barWidth = (canvas.width - BAR_GAP * (BAR_COUNT - 1)) / BAR_COUNT;
+  const usableBins = Math.floor(dataArray.length * 0.75);
+
+  for (let i = 0; i < BAR_COUNT; i++) {
+    const t0 = Math.pow(i / BAR_COUNT, 1.5);
+    const t1 = Math.pow((i + 1) / BAR_COUNT, 1.5);
+    const startBin = Math.floor(t0 * usableBins);
+    const endBin = Math.max(startBin + 1, Math.floor(t1 * usableBins));
+
+    let sum = 0;
+    let count = 0;
+    for (let b = startBin; b < endBin && b < dataArray.length; b++) {
+      sum += dataArray[b];
+      count++;
+    }
+    const value = count > 0 ? sum / count : 0;
+    overallLevel += value;
+
+    const barHeight = Math.max(2, (value / 255) * maxBarHeight);
+    const x = i * (barWidth + BAR_GAP);
+    const y = groundY - barHeight;
+
+    const gradient = ctx.createLinearGradient(0, groundY, 0, groundY - maxBarHeight);
+    gradient.addColorStop(0, "#2a5fb8");
+    gradient.addColorStop(0.6, "#4f9dff");
+    gradient.addColorStop(1, "#ff2f6e");
+
+    ctx.fillStyle = gradient;
+    ctx.shadowBlur = value > 140 ? 12 : 4;
+    ctx.shadowColor = "#4f9dff";
+    ctx.fillRect(x, y, barWidth, barHeight);
+    ctx.shadowBlur = 0;
+
+    if (barHeight > peaks[i]) {
+      peaks[i] = barHeight;
+    } else {
+      peaks[i] = Math.max(0, peaks[i] - 1.5);
+    }
+
+    if (peaks[i] > 2) {
+      ctx.fillStyle = "#cfe0ff";
+      ctx.shadowBlur = 6;
+      ctx.shadowColor = "#8ec5ff";
+      ctx.fillRect(x, groundY - peaks[i] - 2, barWidth, 2);
+      ctx.shadowBlur = 0;
+    }
+  }
+
+  const glowIntensity = Math.min((overallLevel / BAR_COUNT) / 140, 1);
   playerEl.style.setProperty('--glow-intensity', glowIntensity.toFixed(2));
 
-  bounceOffset = (bass / 255) * 20;
-  swingAngle = Math.sin(Date.now() / 200) * (0.1 + bass / 600);
-
-  const centerX = canvas.width / 2;
-  const groundY = 100;
-  const bodyY = groundY - 40 - bounceOffset;
-
-  ctx.save();
-  ctx.translate(centerX, bodyY);
-  ctx.rotate(swingAngle);
-
-  // Nogi
-  ctx.strokeStyle = "#8ec5ff";
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  ctx.moveTo(-6, 25); ctx.lineTo(-10, 45);
-  ctx.moveTo(6, 25); ctx.lineTo(10, 45);
-  ctx.stroke();
-
-  // Tors
-  ctx.fillStyle = "#4f9dff";
-  ctx.fillRect(-8, 0, 16, 28);
-
-  // Ramiona
-  ctx.beginPath();
-  ctx.moveTo(-8, 5); ctx.lineTo(-20, 15 - bounceOffset / 2);
-  ctx.moveTo(8, 5); ctx.lineTo(20, 15 - bounceOffset / 2);
-  ctx.stroke();
-
-  // Głowa
-  ctx.fillStyle = "#f4d9b1";
-  ctx.beginPath();
-  ctx.arc(0, -8, 10, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Kapelusz (kowbojski)
-  ctx.fillStyle = "#ff2f6e";
-  ctx.shadowBlur = bass > 120 ? 15 : 0;
-  ctx.shadowColor = "#ff2f6e";
-  ctx.beginPath();
-  ctx.ellipse(0, -18, 16, 5, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillRect(-8, -26, 16, 10);
-  ctx.shadowBlur = 0;
-
-  ctx.restore();
-
-  // Linia "podłogi"
   ctx.strokeStyle = "#1e3a63";
-  ctx.lineWidth = 2;
+  ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.moveTo(0, groundY);
   ctx.lineTo(canvas.width, groundY);
   ctx.stroke();
 }
 
-// Uruchomienie pętli graficznej
 draw();

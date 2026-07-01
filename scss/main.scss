@@ -34,6 +34,7 @@ body {
   transition: box-shadow 0.05s linear;
   overflow: hidden;
 
+  // Subtelny efekt scanline
   &::after {
     content: '';
     position: absolute;
@@ -184,4 +185,33 @@ input[type="file"] {
       padding-left: 6px;
     }
   }
+}
+
+.footer {
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid $accent-dim;
+  text-align: center;
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  color: $text-dim;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+}
+
+.footer-author {
+  color: $accent-soft;
+  font-weight: bold;
+  text-shadow: 0 0 6px rgba(79, 157, 255, 0.5);
+}
+
+.footer-divider {
+  color: $accent-dim;
+}
+
+.footer-ai {
+  color: $text-dim;
+  font-style: italic;
 }
