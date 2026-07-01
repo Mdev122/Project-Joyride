@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Joyride Player</title>
-  <link rel="stylesheet" href="css/style.css">
   <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
@@ -16,12 +16,21 @@
     <canvas id="convoyCanvas"></canvas>
   </div>
 
+  <div class="now-playing" id="nowPlaying">Brak utworu</div>
+
   <div class="controls">
     <button onclick="document.getElementById('audio-file').click()">Wgraj MP3</button>
+    <button onclick="document.getElementById('folder-input').click()">Wgraj folder</button>
+    <button id="prevBtn">⏮</button>
     <button id="playBtn">Play</button>
+    <button id="nextBtn">⏭</button>
     <audio id="audio" loop></audio>
   </div>
-  <input type="file" id="audio-file" accept="audio/*">
+
+  <ul class="playlist" id="playlist"></ul>
+
+  <input type="file" id="audio-file" accept="audio/*" multiple>
+  <input type="file" id="folder-input" webkitdirectory multiple>
 </div>
 
 <script src="js/player.js"></script>

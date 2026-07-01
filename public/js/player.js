@@ -1,34 +1,95 @@
 const audio = document.getElementById('audio');
 const playBtn = document.getElementById('playBtn');
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
 const fileInput = document.getElementById('audio-file');
+const folderInput = document.getElementById('folder-input');
 const canvas = document.getElementById('convoyCanvas');
 const ctx = canvas.getContext('2d');
+const playlistEl = document.getElementById('playlist');
+const nowPlayingEl = document.getElementById('nowPlaying');
+const playerEl = document.getElementById('joyride-player');
 
-// Dopasowanie rozdzielczości canvasu
 canvas.width = 400;
 canvas.height = 125;
 
-// Zmienne audio dla analizatora basu
 let audioCtx, analyser, source, dataArray;
 let isContextSetup = false;
 
-// Ładowanie pliku muzycznego
+let tracks = [];
+let currentIndex = -1;
+
 fileInput.addEventListener('change', function () {
-  const files = this.files;
-  if (files.length > 0) {
-    audio.src = URL.createObjectURL(files[0]);
-    playBtn.innerText = "Play";
+  const files = Array.from(this.files);
+  if (files.length === 0) return;
+
+  files.forEach(file => {
+    tracks.push({ name: file.name, url: URL.createObjectURL(file) });
+  });
+
+  renderPlaylist();
+
+  if (currentIndex === -1) {
+    loadTrack(tracks.length - files.length);
   }
 });
 
-// Kontrola odtwarzania
-playBtn.addEventListener('click', () => {
+folderInput.addEventListener('change', function () {
+  const files = Array.from(this.files).filter(file => file.type.startsWith('audio/'));
+  if (files.length === 0) return;
+
+  files.forEach(file => {
+    tracks.push({ name: file.name, url: URL.createObjectURL(file) });
+  });
+
+  renderPlaylist();
+
+  if (currentIndex === -1) {
+    loadTrack(tracks.length - files.length);
+  }
+});
+
+function renderPlaylist() {
+  playlistEl.innerHTML = '';
+  tracks.forEach((track, index) => {
+    const li = document.createElement('li');
+    li.textContent = track.name;
+    if (index === currentIndex) li.classList.add('active');
+    li.addEventListener('click', () => {
+      loadTrack(index);
+      playCurrent();
+    });
+    playlistEl.appendChild(li);
+  });
+}
+
+function loadTrack(index) {
+  if (index < 0 || index >= tracks.length) return;
+  currentIndex = index;
+  audio.src = tracks[index].url;
+  nowPlayingEl.textContent = tracks[index].name;
+  playBtn.innerText = "Play";
+  renderPlaylist();
+}
+
+function playCurrent() {
   if (!isContextSetup && audio.src) {
     setupAudioEngine();
     isContextSetup = true;
   }
+  audio.play();
+  playBtn.innerText = "Pause";
+}
 
-  if (audio.paused && audio.src) {
+playBtn.addEventListener('click', () => {
+  if (currentIndex === -1) return;
+
+  if (!isContextSetup) {
+    setupAudioEngine();
+    isContextSetup = true;
+  }
+
+  if (audio.paused) {
     audio.play();
     playBtn.innerText = "Pause";
   } else {
@@ -37,7 +98,26 @@ playBtn.addEventListener('click', () => {
   }
 });
 
-// Silnik audio wyciągający częstotliwości (basy)
+prevBtn.addEventListener('click', () => {
+  if (tracks.length === 0) return;
+  const newIndex = (currentIndex - 1 + tracks.length) % tracks.length;
+  loadTrack(newIndex);
+  playCurrent();
+});
+
+nextBtn.addEventListener('click', () => {
+  if (tracks.length === 0) return;
+  const newIndex = (currentIndex + 1) % tracks.length;
+  loadTrack(newIndex);
+  playCurrent();
+});
+
+audio.addEventListener('ended', () => {
+  if (tracks.length > 1) {
+    nextBtn.click();
+  }
+});
+
 function setupAudioEngine() {
   audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   analyser = audioCtx.createAnalyser();
@@ -48,16 +128,13 @@ function setupAudioEngine() {
   dataArray = new Uint8Array(analyser.frequencyBinCount);
 }
 
-// Parametry animacji kowbojki
 let bounceOffset = 0;
 let swingAngle = 0;
 
-// Główna pętla rysowania Canvas
 function draw() {
   requestAnimationFrame(draw);
 
-  // Czyszczenie ekranu z lekkim efektem smugi (motion blur)
-  ctx.fillStyle = "rgba(11, 12, 16, 0.3)";
+  ctx.fillStyle = "rgba(3, 7, 17, 0.35)";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   let bass = 0;
@@ -66,7 +143,9 @@ function draw() {
     bass = (dataArray[0] + dataArray[1] + dataArray[2]) / 3;
   }
 
-  // Bas napędza skok i kołysanie
+  const glowIntensity = Math.min(bass / 180, 1);
+  playerEl.style.setProperty('--glow-intensity', glowIntensity.toFixed(2));
+
   bounceOffset = (bass / 255) * 20;
   swingAngle = Math.sin(Date.now() / 200) * (0.1 + bass / 600);
 
@@ -79,7 +158,7 @@ function draw() {
   ctx.rotate(swingAngle);
 
   // Nogi
-  ctx.strokeStyle = "#66fcf1";
+  ctx.strokeStyle = "#8ec5ff";
   ctx.lineWidth = 3;
   ctx.beginPath();
   ctx.moveTo(-6, 25); ctx.lineTo(-10, 45);
@@ -87,7 +166,7 @@ function draw() {
   ctx.stroke();
 
   // Tors
-  ctx.fillStyle = "#45f3ff";
+  ctx.fillStyle = "#4f9dff";
   ctx.fillRect(-8, 0, 16, 28);
 
   // Ramiona
@@ -103,9 +182,9 @@ function draw() {
   ctx.fill();
 
   // Kapelusz (kowbojski)
-  ctx.fillStyle = "#ff007f";
+  ctx.fillStyle = "#ff2f6e";
   ctx.shadowBlur = bass > 120 ? 15 : 0;
-  ctx.shadowColor = "#ff007f";
+  ctx.shadowColor = "#ff2f6e";
   ctx.beginPath();
   ctx.ellipse(0, -18, 16, 5, 0, 0, Math.PI * 2);
   ctx.fill();
@@ -115,7 +194,7 @@ function draw() {
   ctx.restore();
 
   // Linia "podłogi"
-  ctx.strokeStyle = "#1f2833";
+  ctx.strokeStyle = "#1e3a63";
   ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.moveTo(0, groundY);

@@ -1,5 +1,15 @@
-$bg-dark: #0b0c10;
-$bg-panel: #1f2833;
-$accent: #45f3ff;
-$text-accent: #66fcf1;
-$highlight: #ff007f;
+// Paleta: głęboki granat + elektryczny niebieski glow
+$bg-deep: #030711;
+$bg-panel: #0b1220;
+$bg-panel-raised: #101a30;
+
+$accent: #4f9dff;      // główny elektryczny niebieski
+$accent-soft: #8ec5ff; // jaśniejszy niebieski (hover, tekst aktywny)
+$accent-dim: #1e3a63;  // przygaszony niebieski (obramowania, linie)
+
+$text-primary: #cfe0ff;
+$text-dim: #5f7aa8;
+
+$highlight: #ff2f6e;   // magenta - kontrastowy akcent (światła kowbojki)
+
+$font-display: 'Share Tech Mono', monospace;
