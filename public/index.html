@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Joyride Player</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="data:,">
+</head>
+<body>
+
+<div id="joyride-player">
+  <div class="title-bar">JOYRIDE PLAYER v1.0</div>
+
+  <div class="canvas-container">
+    <canvas id="convoyCanvas"></canvas>
+  </div>
+
+  <div class="controls">
+    <button onclick="document.getElementById('audio-file').click()">Wgraj MP3</button>
+    <button id="playBtn">Play</button>
+    <audio id="audio" loop></audio>
+  </div>
+  <input type="file" id="audio-file" accept="audio/*">
+</div>
+
+<script src="js/player.js"></script>
+</body>
+</html>
